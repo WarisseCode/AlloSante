@@ -1,4 +1,7 @@
 import 'package:equatable/equatable.dart';
+import '../../../../core/config/api_config.dart';
+
+enum UserRole { patient, doctor, admin }
 
 /// Entité Utilisateur
 class User extends Equatable {
@@ -7,6 +10,8 @@ class User extends Equatable {
   final String? phone;
   final String firstName;
   final String lastName;
+  final UserRole role;
+  final Map<String, dynamic>? doctorProfile; // Simplified for now
   final String? profilePictureUrl;
   final DateTime? dateOfBirth;
   final String? address;
@@ -21,6 +26,8 @@ class User extends Equatable {
     this.phone,
     required this.firstName,
     required this.lastName,
+    this.role = UserRole.patient,
+    this.doctorProfile,
     this.profilePictureUrl,
     this.dateOfBirth,
     this.address,
@@ -40,6 +47,16 @@ class User extends Equatable {
     return '$first$last';
   }
 
+  /// URL complet de l'avatar
+  String? get fullProfilePictureUrl {
+    if (profilePictureUrl == null) return null;
+    if (profilePictureUrl!.startsWith('http')) return profilePictureUrl;
+    if (profilePictureUrl!.startsWith('/')) {
+      return '${ApiConfig.baseDomain}$profilePictureUrl';
+    }
+    return '${ApiConfig.baseDomain}/$profilePictureUrl';
+  }
+
   /// Numéro de téléphone formaté
   String get formattedPhone {
     if (phone == null) return '';
@@ -57,6 +74,8 @@ class User extends Equatable {
     String? phone,
     String? firstName,
     String? lastName,
+    UserRole? role,
+    Map<String, dynamic>? doctorProfile,
     String? profilePictureUrl,
     DateTime? dateOfBirth,
     String? address,
@@ -71,6 +90,8 @@ class User extends Equatable {
       phone: phone ?? this.phone,
       firstName: firstName ?? this.firstName,
       lastName: lastName ?? this.lastName,
+      role: role ?? this.role,
+      doctorProfile: doctorProfile ?? this.doctorProfile,
       profilePictureUrl: profilePictureUrl ?? this.profilePictureUrl,
       dateOfBirth: dateOfBirth ?? this.dateOfBirth,
       address: address ?? this.address,
@@ -83,19 +104,21 @@ class User extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        email,
-        phone,
-        firstName,
-        lastName,
-        profilePictureUrl,
-        dateOfBirth,
-        address,
-        city,
-        isVerified,
-        createdAt,
-        updatedAt,
-      ];
+    id,
+    email,
+    phone,
+    firstName,
+    lastName,
+    role,
+    doctorProfile,
+    profilePictureUrl,
+    dateOfBirth,
+    address,
+    city,
+    isVerified,
+    createdAt,
+    updatedAt,
+  ];
 }
 
 /// Credentials pour l'authentification

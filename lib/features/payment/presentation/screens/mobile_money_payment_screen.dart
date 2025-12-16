@@ -7,6 +7,7 @@ import '../../../../core/widgets/secure_input_field.dart';
 import '../../../appointments/domain/entities/appointment.dart';
 import '../../data/repositories/payment_repository.dart';
 import '../providers/payment_provider.dart';
+import 'cash_payment_screen.dart';
 
 /// Écran de paiement Mobile Money
 /// Permet de sélectionner MTN MoMo ou Celtiis Cash
@@ -147,11 +148,16 @@ class _MobileMoneyPaymentScreenState extends State<MobileMoneyPaymentScreen> {
             iconData: Icons.payments_outlined,
             isSelected: provider.selectedMethod == PaymentMethod.cash,
             onTap: () {
-              // TODO: Gérer le paiement sur place
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Option bientôt disponible'),
-                  behavior: SnackBarBehavior.floating,
+              // Naviguer vers l'écran de paiement sur place
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => CashPaymentScreen(
+                    appointmentId: widget.appointmentId,
+                    amount: widget.amount,
+                    doctorName: widget.doctorName,
+                    appointmentDate: DateTime.now().add(const Duration(days: 1)), // Exemple de date
+                  ),
                 ),
               );
             },

@@ -17,6 +17,7 @@ class SecureInputField extends StatefulWidget {
     this.onChanged,
     this.onSubmitted,
     this.prefixIcon,
+    this.prefixText,
     this.suffixIcon,
     this.enabled = true,
     this.readOnly = false,
@@ -30,55 +31,58 @@ class SecureInputField extends StatefulWidget {
 
   /// Label du champ
   final String label;
-  
+
   /// Texte d'indication
   final String? hint;
-  
+
   /// Controller
   final TextEditingController? controller;
-  
+
   /// Valeur initiale
   final String? initialValue;
-  
+
   /// Type d'entrée sécurisée
   final SecureInputType inputType;
-  
+
   /// Validateur
   final String? Function(String?)? validator;
-  
+
   /// Callback lors du changement
   final ValueChanged<String>? onChanged;
-  
+
   /// Callback lors de la soumission
   final ValueChanged<String>? onSubmitted;
-  
+
   /// Icône de préfixe
   final IconData? prefixIcon;
-  
+
+  /// Texte de préfixe (ex: '01' pour les numéros de téléphone)
+  final String? prefixText;
+
   /// Widget de suffixe personnalisé
   final Widget? suffixIcon;
-  
+
   /// État d'activation
   final bool enabled;
-  
+
   /// Lecture seule
   final bool readOnly;
-  
+
   /// Longueur maximale
   final int? maxLength;
-  
+
   /// Action du clavier
   final TextInputAction textInputAction;
-  
+
   /// Hints pour le remplissage automatique
   final Iterable<String>? autofillHints;
-  
+
   /// Focus node
   final FocusNode? focusNode;
-  
+
   /// Texte d'erreur externe
   final String? errorText;
-  
+
   /// Texte d'aide
   final String? helperText;
 
@@ -95,7 +99,8 @@ class _SecureInputFieldState extends State<SecureInputField> {
   void initState() {
     super.initState();
     _obscureText = widget.inputType == SecureInputType.password;
-    _controller = widget.controller ?? TextEditingController(text: widget.initialValue);
+    _controller =
+        widget.controller ?? TextEditingController(text: widget.initialValue);
   }
 
   @override
@@ -130,7 +135,9 @@ class _SecureInputFieldState extends State<SecureInputField> {
       case SecureInputType.otp:
         return [
           FilteringTextInputFormatter.digitsOnly,
-          LengthLimitingTextInputFormatter(widget.maxLength ?? AppConstants.otpLength),
+          LengthLimitingTextInputFormatter(
+            widget.maxLength ?? AppConstants.otpLength,
+          ),
         ];
       default:
         return [];
@@ -173,7 +180,7 @@ class _SecureInputFieldState extends State<SecureInputField> {
   @override
   Widget build(BuildContext context) {
     final hasError = widget.errorText != null && widget.errorText!.isNotEmpty;
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -187,12 +194,12 @@ class _SecureInputFieldState extends State<SecureInputField> {
             color: hasError
                 ? AppColors.error
                 : _isFocused
-                    ? AppColors.primary
-                    : AppColors.textPrimary,
+                ? AppColors.primary
+                : AppColors.textPrimary,
           ),
         ),
         const SizedBox(height: 8),
-        
+
         // Champ de texte
         Focus(
           onFocusChange: (hasFocus) {
@@ -228,14 +235,40 @@ class _SecureInputFieldState extends State<SecureInputField> {
                 fontSize: 12,
                 color: AppColors.textSecondary,
               ),
-              prefixIcon: Icon(
-                widget.prefixIcon ?? _defaultPrefixIcon,
-                color: hasError
-                    ? AppColors.error
-                    : _isFocused
-                        ? AppColors.primary
-                        : AppColors.textSecondary,
-              ),
+              prefixIcon: widget.prefixText != null
+                  ? Padding(
+                      padding: const EdgeInsets.only(left: 16, right: 8),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            widget.prefixIcon ?? _defaultPrefixIcon,
+                            color: hasError
+                                ? AppColors.error
+                                : _isFocused
+                                ? AppColors.primary
+                                : AppColors.textSecondary,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            widget.prefixText!,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : Icon(
+                      widget.prefixIcon ?? _defaultPrefixIcon,
+                      color: hasError
+                          ? AppColors.error
+                          : _isFocused
+                          ? AppColors.primary
+                          : AppColors.textSecondary,
+                    ),
               suffixIcon: widget.inputType == SecureInputType.password
                   ? IconButton(
                       icon: Icon(
@@ -269,7 +302,10 @@ class _SecureInputFieldState extends State<SecureInputField> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppConstants.borderRadius),
-                borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                borderSide: const BorderSide(
+                  color: AppColors.primary,
+                  width: 2,
+                ),
               ),
               errorBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppConstants.borderRadius),
@@ -281,7 +317,9 @@ class _SecureInputFieldState extends State<SecureInputField> {
               ),
               disabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppConstants.borderRadius),
-                borderSide: BorderSide(color: AppColors.border.withValues(alpha: 0.5)),
+                borderSide: BorderSide(
+                  color: AppColors.border.withValues(alpha: 0.5),
+                ),
               ),
             ),
           ),
@@ -292,13 +330,7 @@ class _SecureInputFieldState extends State<SecureInputField> {
 }
 
 /// Types d'entrées sécurisées
-enum SecureInputType {
-  text,
-  email,
-  password,
-  phone,
-  otp,
-}
+enum SecureInputType { text, email, password, phone, otp }
 
 /// Champ de numéro de téléphone béninois avec préfixe
 class BeninPhoneField extends StatelessWidget {
@@ -397,7 +429,7 @@ class BeninPhoneField extends StatelessWidget {
                 ],
               ),
             ),
-            
+
             // Champ de numéro
             Expanded(
               child: TextFormField(
@@ -406,7 +438,9 @@ class BeninPhoneField extends StatelessWidget {
                 keyboardType: TextInputType.phone,
                 inputFormatters: [
                   FilteringTextInputFormatter.digitsOnly,
-                  LengthLimitingTextInputFormatter(AppConstants.beninPhoneLength),
+                  LengthLimitingTextInputFormatter(
+                    AppConstants.beninPhoneLength,
+                  ),
                   _PhoneNumberFormatter(),
                 ],
                 autofillHints: const [AutofillHints.telephoneNumber],
@@ -472,14 +506,14 @@ class _PhoneNumberFormatter extends TextInputFormatter {
   ) {
     final text = newValue.text.replaceAll(' ', '');
     final buffer = StringBuffer();
-    
+
     for (int i = 0; i < text.length; i++) {
       if (i > 0 && i % 2 == 0) {
         buffer.write(' ');
       }
       buffer.write(text[i]);
     }
-    
+
     return TextEditingValue(
       text: buffer.toString(),
       selection: TextSelection.collapsed(offset: buffer.length),

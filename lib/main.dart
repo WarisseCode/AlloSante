@@ -10,18 +10,24 @@ import 'core/constants/app_constants.dart';
 import 'features/auth/presentation/providers/auth_provider.dart';
 import 'features/auth/presentation/screens/login_screen.dart';
 import 'features/auth/presentation/screens/otp_screen.dart';
+import 'features/auth/presentation/screens/welcome_screen.dart';
 import 'features/home/presentation/screens/home_screen.dart';
 import 'features/payment/presentation/providers/payment_provider.dart';
+import 'features/appointments/presentation/providers/doctor_provider.dart';
+import 'features/appointments/presentation/providers/appointment_provider.dart';
+import 'features/medical_record/presentation/providers/medical_record_provider.dart';
+import 'features/doctor/presentation/screens/doctor_home_screen.dart';
+import 'features/auth/domain/entities/user.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Configurer l'orientation préférée
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
-  
+
   // Configurer la barre de statut
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
@@ -29,10 +35,10 @@ void main() async {
       statusBarIconBrightness: Brightness.light,
     ),
   );
-  
+
   // Initialiser les services
   await _initializeServices();
-  
+
   runApp(const AlloSanteApp());
 }
 
@@ -40,10 +46,10 @@ void main() async {
 Future<void> _initializeServices() async {
   // Initialiser le stockage local (Hive)
   await LocalStorageService().initialize();
-  
+
   // Initialiser le stockage sécurisé
   SecureStorageService().initialize();
-  
+
   // Initialiser le service de connectivité
   await ConnectivityService().initialize();
 }
@@ -57,32 +63,35 @@ class AlloSanteApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         // Services
-        ChangeNotifierProvider(
-          create: (_) => ConnectivityService(),
-        ),
-        
+        ChangeNotifierProvider(create: (_) => ConnectivityService()),
+
         // Providers d'authentification
-        ChangeNotifierProvider(
-          create: (_) => AuthProvider()..initialize(),
-        ),
-        
+        ChangeNotifierProvider(create: (_) => AuthProvider()..initialize()),
+
         // Provider de paiement
-        ChangeNotifierProvider(
-          create: (_) => PaymentProvider(),
-        ),
+        ChangeNotifierProvider(create: (_) => PaymentProvider()),
+
+        // Provider des médecins
+        ChangeNotifierProvider(create: (_) => DoctorProvider()),
+
+        // Provider des rendez-vous
+        ChangeNotifierProvider(create: (_) => AppointmentProvider()),
+
+        // Provider du dossier médical
+        ChangeNotifierProvider(create: (_) => MedicalRecordProvider()),
       ],
       child: MaterialApp(
         title: AppConstants.appNameFull,
         debugShowCheckedModeBanner: false,
-        
+
         // Thème
         theme: AlloSanteTheme.lightTheme,
         darkTheme: AlloSanteTheme.darkTheme,
         themeMode: ThemeMode.light,
-        
+
         // Localisation (Français)
         locale: const Locale('fr', 'FR'),
-        
+
         // Page d'accueil avec gestion de l'état d'authentification
         home: const AuthWrapper(),
       ),
@@ -104,19 +113,22 @@ class AuthWrapper extends StatelessWidget {
             authProvider.status == AuthStatus.loading) {
           return const SplashScreen();
         }
-        
-        // Si authentifié, afficher l'écran d'accueil
+
+        // Si authentifié, afficher l'écran d'accueil approprié
         if (authProvider.status == AuthStatus.authenticated) {
+          if (authProvider.user?.role == UserRole.doctor) {
+            return const DoctorHomeScreen();
+          }
           return const HomeScreen();
         }
-        
+
         // Si en attente d'OTP, afficher l'écran OTP
         if (authProvider.status == AuthStatus.awaitingOtp) {
           return const OtpScreen();
         }
-        
-        // Sinon, afficher l'écran de connexion
-        return const LoginScreen();
+
+        // Sinon, afficher l'écran de bienvenue
+        return const WelcomeScreen();
       },
     );
   }
@@ -155,9 +167,9 @@ class SplashScreen extends StatelessWidget {
                 color: Theme.of(context).colorScheme.primary,
               ),
             ),
-            
+
             const SizedBox(height: 32),
-            
+
             // Nom de l'app
             const Text(
               AppConstants.appName,
@@ -167,9 +179,9 @@ class SplashScreen extends StatelessWidget {
                 color: Colors.white,
               ),
             ),
-            
+
             const SizedBox(height: 8),
-            
+
             // Tagline
             Text(
               AppConstants.appTagline,
@@ -178,9 +190,9 @@ class SplashScreen extends StatelessWidget {
                 color: Colors.white.withValues(alpha: 0.9),
               ),
             ),
-            
+
             const SizedBox(height: 48),
-            
+
             // Indicateur de chargement
             const SizedBox(
               width: 40,

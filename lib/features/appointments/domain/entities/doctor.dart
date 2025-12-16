@@ -17,6 +17,7 @@ class Doctor extends Equatable {
   final bool isAvailable;
   final String? bio;
   final int experienceYears;
+  final String? gender;
 
   const Doctor({
     required this.id,
@@ -34,6 +35,7 @@ class Doctor extends Equatable {
     required this.isAvailable,
     this.bio,
     required this.experienceYears,
+    this.gender,
   });
 
   /// Nom complet du médecin
@@ -133,22 +135,22 @@ class Doctor extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        firstName,
-        lastName,
-        specialty,
-        profilePictureUrl,
-        location,
-        address,
-        rating,
-        reviewCount,
-        consultationPrice,
-        languages,
-        availableDays,
-        isAvailable,
-        bio,
-        experienceYears,
-      ];
+    id,
+    firstName,
+    lastName,
+    specialty,
+    profilePictureUrl,
+    location,
+    address,
+    rating,
+    reviewCount,
+    consultationPrice,
+    languages,
+    availableDays,
+    isAvailable,
+    bio,
+    experienceYears,
+  ];
 }
 
 /// Spécialités médicales

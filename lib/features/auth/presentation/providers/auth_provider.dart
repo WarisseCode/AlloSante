@@ -1,6 +1,9 @@
+import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../../domain/entities/user.dart';
+// Note: UserRole is inside user.dart
 
 /// États d'authentification
 enum AuthStatus {
@@ -18,7 +21,7 @@ class AuthProvider extends ChangeNotifier {
   final AuthRepository _repository;
 
   AuthProvider({AuthRepository? repository})
-      : _repository = repository ?? AuthRepository();
+    : _repository = repository ?? AuthRepository();
 
   // État
   AuthStatus _status = AuthStatus.initial;
@@ -45,11 +48,11 @@ class AuthProvider extends ChangeNotifier {
 
     try {
       final isAuth = await _repository.isAuthenticated();
-      
+
       if (isAuth) {
         _user = await _repository.getCurrentUser();
-        _status = _user != null 
-            ? AuthStatus.authenticated 
+        _status = _user != null
+            ? AuthStatus.authenticated
             : AuthStatus.unauthenticated;
       } else {
         _status = AuthStatus.unauthenticated;
@@ -65,18 +68,12 @@ class AuthProvider extends ChangeNotifier {
   }
 
   /// Connexion avec email et mot de passe
-  Future<bool> login({
-    required String email,
-    required String password,
-  }) async {
+  Future<bool> login({required String email, required String password}) async {
     _status = AuthStatus.loading;
     _errorMessage = null;
     notifyListeners();
 
-    final result = await _repository.login(
-      email: email,
-      password: password,
-    );
+    final result = await _repository.login(email: email, password: password);
 
     return result.fold(
       (failure) {
@@ -88,7 +85,7 @@ class AuthProvider extends ChangeNotifier {
       (user) async {
         _user = user;
         _pendingPhone = user.phone;
-        
+
         // Envoyer OTP pour MFA
         if (user.phone != null && user.phone!.isNotEmpty) {
           await _sendOtp(user.phone!);
@@ -96,7 +93,7 @@ class AuthProvider extends ChangeNotifier {
         } else {
           _status = AuthStatus.awaitingOtp;
         }
-        
+
         notifyListeners();
         return true;
       },
@@ -110,6 +107,10 @@ class AuthProvider extends ChangeNotifier {
     required String firstName,
     required String lastName,
     required String phone,
+    UserRole role = UserRole.patient,
+    String? specialty,
+    String? location,
+    int? consultationPrice,
   }) async {
     _status = AuthStatus.loading;
     _errorMessage = null;
@@ -121,6 +122,10 @@ class AuthProvider extends ChangeNotifier {
       firstName: firstName,
       lastName: lastName,
       phone: phone,
+      role: role,
+      specialty: specialty,
+      location: location,
+      consultationPrice: consultationPrice,
     );
 
     return result.fold(
@@ -133,11 +138,66 @@ class AuthProvider extends ChangeNotifier {
       (user) async {
         _user = user;
         _pendingPhone = phone;
-        
+
         // Envoyer OTP pour vérification
         await _sendOtp(phone);
         _status = AuthStatus.awaitingOtp;
-        
+
+        notifyListeners();
+        return true;
+      },
+    );
+  }
+
+  /// Mettre à jour le profil
+  Future<bool> updateProfile({
+    String? firstName,
+    String? lastName,
+    String? email,
+  }) async {
+    _status = AuthStatus.loading;
+    _errorMessage = null;
+    notifyListeners();
+
+    final result = await _repository.updateProfile(
+      firstName: firstName,
+      lastName: lastName,
+      email: email,
+    );
+
+    return result.fold(
+      (failure) {
+        _status = AuthStatus.authenticated; // Rester authentifié
+        _errorMessage = failure.message;
+        notifyListeners();
+        return false;
+      },
+      (user) {
+        _user = user;
+        _status = AuthStatus.authenticated;
+        notifyListeners();
+        return true;
+      },
+    );
+  }
+
+  /// Upload de l'avatar
+  Future<bool> uploadAvatar(File file) async {
+    _status = AuthStatus.loading;
+    notifyListeners();
+
+    final result = await _repository.uploadAvatar(file);
+
+    return result.fold(
+      (failure) {
+        _status = AuthStatus.authenticated;
+        _errorMessage = failure.message;
+        notifyListeners();
+        return false;
+      },
+      (user) {
+        _user = user;
+        _status = AuthStatus.authenticated;
         notifyListeners();
         return true;
       },
@@ -147,7 +207,7 @@ class AuthProvider extends ChangeNotifier {
   /// Envoyer le code OTP
   Future<bool> _sendOtp(String phone) async {
     final result = await _repository.sendOtp(phone);
-    
+
     return result.fold(
       (failure) {
         _errorMessage = failure.message;
@@ -170,7 +230,7 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     final result = await _repository.sendOtp(_pendingPhone!);
-    
+
     return result.fold(
       (failure) {
         _errorMessage = failure.message;
@@ -199,21 +259,19 @@ class AuthProvider extends ChangeNotifier {
 
     _otpAttempts++;
 
-    final result = await _repository.verifyOtp(
-      phone: _pendingPhone!,
-      otp: otp,
-    );
+    final result = await _repository.verifyOtp(phone: _pendingPhone!, otp: otp);
 
     return result.fold(
       (failure) {
         _status = AuthStatus.awaitingOtp;
         _errorMessage = failure.message;
-        
+
         // Vérifier le nombre de tentatives
         if (_otpAttempts >= 3) {
-          _errorMessage = 'Trop de tentatives. Veuillez renvoyer un nouveau code.';
+          _errorMessage =
+              'Trop de tentatives. Veuillez renvoyer un nouveau code.';
         }
-        
+
         notifyListeners();
         return false;
       },
@@ -222,11 +280,11 @@ class AuthProvider extends ChangeNotifier {
         _status = AuthStatus.authenticated;
         _pendingPhone = null;
         _otpAttempts = 0;
-        
+
         if (kDebugMode) {
           debugPrint('✅ Authentification réussie: ${_user?.fullName}');
         }
-        
+
         notifyListeners();
         return true;
       },
@@ -245,24 +303,21 @@ class AuthProvider extends ChangeNotifier {
     _errorMessage = null;
     _otpAttempts = 0;
     _status = AuthStatus.unauthenticated;
-    
+
     notifyListeners();
   }
 
   /// Demander la réinitialisation du mot de passe
   Future<bool> requestPasswordReset(String email) async {
     _errorMessage = null;
-    
+
     final result = await _repository.requestPasswordReset(email);
-    
-    return result.fold(
-      (failure) {
-        _errorMessage = failure.message;
-        notifyListeners();
-        return false;
-      },
-      (success) => true,
-    );
+
+    return result.fold((failure) {
+      _errorMessage = failure.message;
+      notifyListeners();
+      return false;
+    }, (success) => true);
   }
 
   /// Effacer les erreurs
@@ -274,7 +329,7 @@ class AuthProvider extends ChangeNotifier {
   /// Démarrer le compte à rebours pour renvoyer l'OTP
   void _startOtpCountdown() {
     _otpResendCountdown = 60; // 60 secondes
-    
+
     Future.doWhile(() async {
       await Future.delayed(const Duration(seconds: 1));
       _otpResendCountdown--;

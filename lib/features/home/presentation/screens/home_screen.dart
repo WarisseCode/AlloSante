@@ -1,12 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/services/connectivity_service.dart';
 import '../../../../core/widgets/offline_banner.dart';
 import '../../../../core/widgets/primary_action_button.dart';
 import '../../../appointments/domain/entities/doctor.dart';
+import '../../../appointments/domain/entities/appointment.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import 'notifications_screen.dart';
+import '../screens/search_filters_screen.dart';
+import 'package:allosante_benin/features/appointments/presentation/providers/appointment_provider.dart';
+import 'package:allosante_benin/features/appointments/presentation/screens/appointment_detail_screen.dart';
+import 'package:allosante_benin/features/auth/presentation/screens/personal_info_screen.dart';
+import 'package:allosante_benin/features/medical_record/presentation/screens/medical_record_screen.dart';
+import 'package:allosante_benin/features/appointments/presentation/screens/doctor_detail_screen.dart';
+import 'package:allosante_benin/features/payment/presentation/screens/payment_methods_screen.dart';
+import '../../../settings/presentation/screens/settings_screen.dart';
+import '../../../settings/presentation/screens/help_support_screen.dart';
+import '../../../settings/presentation/screens/about_screen.dart';
+import '../../../appointments/presentation/providers/doctor_provider.dart';
 
 /// Écran d'accueil AlloSanté
 /// Dashboard avec accès rapide aux fonctionnalités principales
@@ -19,6 +33,21 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
+
+  // États pour les filtres rapides
+  String? _selectedLocation;
+  String? _selectedAvailability; // 'Maintenant', 'Tout'
+  String? _selectedPrice; // '< 10k', 'Tout'
+
+  @override
+  void initState() {
+    super.initState();
+    // Charger les médecins depuis le backend au démarrage
+    Future.microtask(() {
+      context.read<DoctorProvider>().loadDoctors();
+      context.read<AppointmentProvider>().loadAppointments();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -43,13 +72,21 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             icon: const Icon(Icons.notifications_outlined),
             onPressed: () {
-              // TODO: Notifications
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const NotificationsScreen(),
+                ),
+              );
             },
           ),
           IconButton(
-            icon: const Icon(Icons.person_outline),
+            icon: const Icon(Icons.settings_outlined),
             onPressed: () {
-              // TODO: Profil
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SettingsScreen()),
+              );
             },
           ),
         ],
@@ -89,9 +126,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      floatingActionButton: const EmergencyButton(
-        onPressed: _handleEmergency,
-      ),
+      floatingActionButton: EmergencyButton(onPressed: _handleEmergency),
     );
   }
 
@@ -103,33 +138,30 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           // Message de bienvenue
           _buildWelcomeCard(user),
-          
+
           const SizedBox(height: 24),
-          
+
           // Actions rapides
           Text(
             'Actions rapides',
             style: Theme.of(context).textTheme.titleLarge,
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           _buildQuickActions(),
-          
+
           const SizedBox(height: 24),
-          
+
           // Spécialités populaires
-          Text(
-            'Spécialités',
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-          
+          Text('Spécialités', style: Theme.of(context).textTheme.titleLarge),
+
           const SizedBox(height: 16),
-          
+
           _buildSpecialtiesGrid(),
-          
+
           const SizedBox(height: 24),
-          
+
           // Prochain RDV (si connecté)
           if (user != null) ...[
             Text(
@@ -139,7 +171,7 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 16),
             _buildNextAppointmentCard(),
           ],
-          
+
           const SizedBox(height: 80), // Espace pour le FAB
         ],
       ),
@@ -172,14 +204,19 @@ class _HomeScreenState extends State<HomeScreen> {
               CircleAvatar(
                 radius: 28,
                 backgroundColor: Colors.white.withValues(alpha: 0.2),
-                child: Text(
-                  user?.initials ?? '👤',
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
+                backgroundImage: user?.fullProfilePictureUrl != null
+                    ? NetworkImage(user!.fullProfilePictureUrl!)
+                    : null,
+                child: user?.fullProfilePictureUrl == null
+                    ? Text(
+                        user?.initials ?? '👤',
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      )
+                    : null,
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -251,7 +288,13 @@ class _HomeScreenState extends State<HomeScreen> {
             title: 'Mon\ndossier',
             color: AppColors.info,
             onTap: () {
-              // TODO: QR Code dossier médical
+              // Naviguer vers l'écran du dossier médical
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const MedicalRecordScreen(),
+                ),
+              );
             },
           ),
         ),
@@ -261,10 +304,22 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildSpecialtiesGrid() {
     final specialties = [
-      _SpecialtyItem('Médecine Générale', Icons.local_hospital, AppColors.primary),
-      _SpecialtyItem('Gynécologie', Icons.pregnant_woman, Colors.pink),
+      _SpecialtyItem(
+        'Médecine Générale',
+        Icons.local_hospital,
+        AppColors.primary,
+      ),
+      _SpecialtyItem(
+        'Gynécologie',
+        Icons.pregnant_woman,
+        const Color.fromARGB(255, 236, 47, 173),
+      ),
       _SpecialtyItem('Pédiatrie', Icons.child_care, Colors.orange),
-      _SpecialtyItem('Cardiologie', Icons.favorite, Colors.red),
+      _SpecialtyItem(
+        'Cardiologie',
+        Icons.favorite,
+        const Color.fromARGB(255, 233, 20, 20),
+      ),
       _SpecialtyItem('Dentiste', Icons.mood, Colors.blue),
       _SpecialtyItem('Plus...', Icons.more_horiz, AppColors.textSecondary),
     ];
@@ -340,15 +395,16 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const Text(
                       'Pédiatrie',
-                      style: TextStyle(
-                        color: AppColors.textSecondary,
-                      ),
+                      style: TextStyle(color: AppColors.textSecondary),
                     ),
                   ],
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.successLight,
                   borderRadius: BorderRadius.circular(20),
@@ -372,7 +428,11 @@ class _HomeScreenState extends State<HomeScreen> {
               Expanded(
                 child: Row(
                   children: [
-                    const Icon(Icons.calendar_today, size: 18, color: AppColors.textSecondary),
+                    const Icon(
+                      Icons.calendar_today,
+                      size: 18,
+                      color: AppColors.textSecondary,
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       'Lundi 15 Janvier',
@@ -384,7 +444,11 @@ class _HomeScreenState extends State<HomeScreen> {
               Expanded(
                 child: Row(
                   children: [
-                    const Icon(Icons.access_time, size: 18, color: AppColors.textSecondary),
+                    const Icon(
+                      Icons.access_time,
+                      size: 18,
+                      color: AppColors.textSecondary,
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       '10:00',
@@ -401,26 +465,113 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildAppointmentsContent() {
-    return Center(
+    // Données de démonstration pour les rendez-vous
+    final appointmentProvider = context.watch<AppointmentProvider>();
+    final appointments = appointmentProvider.appointments;
+
+    if (appointmentProvider.isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (appointmentProvider.error != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 48, color: AppColors.error),
+            const SizedBox(height: 16),
+            Text(
+              appointmentProvider.error ?? 'Erreur de chargement',
+              style: const TextStyle(color: AppColors.error),
+              textAlign: TextAlign.center,
+            ),
+            TextButton(
+              onPressed: () {
+                context.read<AppointmentProvider>().loadAppointments();
+              },
+              child: const Text('Réessayer'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (appointments.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.calendar_today,
+              size: 80,
+              color: AppColors.textSecondary.withValues(alpha: 0.5),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Mes rendez-vous',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Vos rendez-vous apparaîtront ici',
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: 24),
+            PrimaryActionButton(
+              text: 'Prendre un rendez-vous',
+              onPressed: () {
+                setState(() => _selectedIndex = 2);
+              },
+              icon: Icons.add_circle_outline,
+              width: 250,
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.all(AppConstants.defaultPadding),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            Icons.calendar_today,
-            size: 80,
-            color: AppColors.textSecondary.withValues(alpha: 0.5),
-          ),
-          const SizedBox(height: 16),
           Text(
-            'Mes rendez-vous',
+            'Mes rendez-vous à venir',
             style: Theme.of(context).textTheme.titleLarge,
           ),
-          const SizedBox(height: 8),
-          Text(
-            'Vos rendez-vous apparaîtront ici',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppColors.textSecondary,
+
+          const SizedBox(height: 16),
+
+          Expanded(
+            child: ListView.separated(
+              itemCount: appointments.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              itemBuilder: (context, index) {
+                final appointment = appointments[index];
+                return _AppointmentCard(
+                  appointment: appointment,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            AppointmentDetailScreen(appointment: appointment),
+                      ),
+                    );
+                  },
+                );
+              },
             ),
+          ),
+          const SizedBox(height: 16),
+          PrimaryActionButton(
+            text: 'Prendre un rendez-vous',
+            onPressed: () {
+              setState(() => _selectedIndex = 2);
+            },
+            icon: Icons.add_circle_outline,
           ),
         ],
       ),
@@ -428,6 +579,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildSearchContent() {
+    final doctorProvider = context.watch<DoctorProvider>();
+    final doctors = doctorProvider.doctors;
+    final isLoading = doctorProvider.isLoading;
+
     return Padding(
       padding: const EdgeInsets.all(AppConstants.defaultPadding),
       child: Column(
@@ -440,71 +595,149 @@ class _HomeScreenState extends State<HomeScreen> {
               prefixIcon: const Icon(Icons.search),
               suffixIcon: IconButton(
                 icon: const Icon(Icons.tune),
-                onPressed: () {
-                  // TODO: Filtres
+                onPressed: () async {
+                  final filters = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const SearchFiltersScreen(),
+                    ),
+                  );
+
+                  if (filters != null && mounted) {
+                    // Appliquer les filtres
+                    context.read<DoctorProvider>().loadDoctors(
+                      location: filters['location'],
+                      maxPrice: (filters['maxPrice'] as double?)?.toInt(),
+                      specialty:
+                          (filters['specialties'] as List?)?.isNotEmpty == true
+                          ? (filters['specialties'] as List).first
+                          : null, // Backend supports regex contains, so one is safer for now or loop?
+                      // Backend logic I updated: if I pass partial string, it finds.
+                      // But frontend sends List<String>.
+                      // I decided earlier to send ONE specialty because backend 'specialty' param is string.
+                      // Wait, checking my backend update.
+                      // Backend 'specialty' is string.
+                      // So I take the first one if multiple selected.
+                      languages: (filters['languages'] as List?)
+                          ?.cast<String>(),
+                      isAvailable: filters['availableNow'] == true
+                          ? true
+                          : null,
+                      minRating: (filters['minRating'] as double?) != 0
+                          ? filters['minRating']
+                          : null,
+                    );
+                  }
                 },
               ),
             ),
           ),
-          
+
           const SizedBox(height: 24),
-          
+
           // Filtres rapides
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
-                _FilterChip(label: 'Cotonou', isSelected: true),
+                // Ville Dropdown
+                _buildFilterDropdown<String>(
+                  value: _selectedLocation,
+                  hint: 'Ville',
+                  items: [
+                    'Toutes',
+                    'Cotonou',
+                    'Porto-Novo',
+                    'Parakou',
+                    'Abomey-Calavi',
+                    'Bohicon',
+                    'Natitingou',
+                  ],
+                  onChanged: (value) {
+                    setState(() => _selectedLocation = value);
+                    _applyQuickFilters();
+                  },
+                ),
                 const SizedBox(width: 8),
-                _FilterChip(label: 'Disponible maintenant'),
+
+                // Disponibilité Dropdown
+                _buildFilterDropdown<String>(
+                  value: _selectedAvailability,
+                  hint: 'Disponibilité',
+                  items: ['Tout', 'Maintenant'],
+                  onChanged: (value) {
+                    setState(() => _selectedAvailability = value);
+                    _applyQuickFilters();
+                  },
+                ),
                 const SizedBox(width: 8),
-                _FilterChip(label: 'Tarif abordable'),
+
+                // Prix Dropdown
+                _buildFilterDropdown<String>(
+                  value: _selectedPrice,
+                  hint: 'Prix',
+                  items: ['Tout', 'Abordable (< 10k)'],
+                  onChanged: (value) {
+                    setState(() => _selectedPrice = value);
+                    _applyQuickFilters();
+                  },
+                ),
               ],
             ),
           ),
-          
+
           const SizedBox(height: 24),
-          
+
           Text(
             'Médecins disponibles',
             style: Theme.of(context).textTheme.titleLarge,
           ),
-          
+
           const SizedBox(height: 16),
-          
-          // Liste des médecins (mock)
+
+          // Liste des médecins depuis le backend
           Expanded(
-            child: ListView.separated(
-              itemCount: 4,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
-              itemBuilder: (context, index) {
-                return _DoctorCard(
-                  doctor: Doctor(
-                    id: 'doc_$index',
-                    firstName: index == 0 ? 'Aminou' : 
-                              index == 1 ? 'Aïcha' :
-                              index == 2 ? 'Koffi' : 'Mariama',
-                    lastName: index == 0 ? 'Kouyaté' : 
-                             index == 1 ? 'Dossou' :
-                             index == 2 ? 'Agbossou' : 'Sanni',
-                    specialty: index == 0 ? 'Médecine Générale' : 
-                              index == 1 ? 'Gynécologie' :
-                              index == 2 ? 'Cardiologie' : 'Pédiatrie',
-                    location: index == 2 ? 'Porto-Novo' : 'Cotonou',
-                    rating: 4.5 + (index * 0.1),
-                    reviewCount: 50 + (index * 20),
-                    consultationPrice: 10000 + (index * 5000),
-                    languages: ['Français', 'Fon'],
-                    availableDays: ['Lundi', 'Mercredi', 'Vendredi'],
-                    isAvailable: true,
-                    experienceYears: 8 + index,
+            child: isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : doctors.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.search_off,
+                          size: 64,
+                          color: AppColors.textSecondary.withValues(alpha: 0.5),
+                        ),
+                        const SizedBox(height: 16),
+                        const Text('Aucun médecin trouvé'),
+                        const SizedBox(height: 8),
+                        TextButton(
+                          onPressed: () => doctorProvider.loadDoctors(),
+                          child: const Text('Réessayer'),
+                        ),
+                      ],
+                    ),
+                  )
+                : ListView.separated(
+                    itemCount: doctors.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 12),
+                    itemBuilder: (context, index) {
+                      final doctor = doctors[index];
+                      return _DoctorCard(
+                        doctor: doctor,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  DoctorDetailScreen(doctor: doctor),
+                            ),
+                          );
+                        },
+                      );
+                    },
                   ),
-                  onTap: () {
-                    // TODO: Détail du médecin
-                  },
-                );
-              },
-            ),
           ),
         ],
       ),
@@ -513,7 +746,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildProfileContent(user) {
     final authProvider = context.read<AuthProvider>();
-    
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppConstants.defaultPadding),
       child: Column(
@@ -522,65 +755,108 @@ class _HomeScreenState extends State<HomeScreen> {
           CircleAvatar(
             radius: 50,
             backgroundColor: AppColors.primaryLight,
-            child: Text(
-              user?.initials ?? '👤',
-              style: const TextStyle(
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
+            backgroundImage: user?.fullProfilePictureUrl != null
+                ? NetworkImage(user!.fullProfilePictureUrl!)
+                : null,
+            child: user?.fullProfilePictureUrl == null
+                ? Text(
+                    user?.initials ?? '👤',
+                    style: const TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  )
+                : null,
           ),
           const SizedBox(height: 16),
           Text(
             user?.fullName ?? 'Utilisateur',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
           ),
           Text(
             user?.email ?? '',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppColors.textSecondary,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
           ),
-          
+
           const SizedBox(height: 32),
-          
+
           // Menu profil
           _ProfileMenuItem(
             icon: Icons.person_outline,
             title: 'Informations personnelles',
-            onTap: () {},
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const PersonalInfoScreen(),
+                ),
+              );
+            },
           ),
           _ProfileMenuItem(
             icon: Icons.folder_outlined,
             title: 'Mon dossier médical',
-            onTap: () {},
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const MedicalRecordScreen(),
+                ),
+              );
+            },
           ),
           _ProfileMenuItem(
             icon: Icons.payment_outlined,
             title: 'Moyens de paiement',
-            onTap: () {},
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const PaymentMethodsScreen(),
+                ),
+              );
+            },
           ),
           _ProfileMenuItem(
-            icon: Icons.notifications_outlined,
-            title: 'Notifications',
-            onTap: () {},
+            icon: Icons.settings_outlined,
+            title: 'Paramètres',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SettingsScreen()),
+              );
+            },
           ),
           _ProfileMenuItem(
             icon: Icons.help_outline,
             title: 'Aide & Support',
-            onTap: () {},
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const HelpSupportScreen(),
+                ),
+              );
+            },
           ),
           _ProfileMenuItem(
             icon: Icons.info_outline,
             title: 'À propos',
-            onTap: () {},
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const AboutScreen()),
+              );
+            },
           ),
-          
+
           const SizedBox(height: 24),
-          
+
           // Bouton déconnexion
           SecondaryActionButton(
             text: 'Déconnexion',
@@ -594,8 +870,139 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  static void _handleEmergency() {
-    // TODO: Gestion des urgences
+  void _handleEmergency() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Urgence'),
+          content: const Text(
+            'Voulez-vous appeler les services d\'urgence (118) ?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Annuler'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _makeEmergencyCall();
+              },
+              child: const Text(
+                'APPELER',
+                style: TextStyle(
+                  color: AppColors.error,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildFilterDropdown<T>({
+    required T? value,
+    required String hint,
+    required List<T> items,
+    required ValueChanged<T?> onChanged,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+      decoration: BoxDecoration(
+        color: value != null
+            ? AppColors.primaryLight.withValues(alpha: 0.2)
+            : AppColors.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: value != null ? AppColors.primary : AppColors.border,
+        ),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<T>(
+          value: value,
+          hint: Text(
+            hint,
+            style: TextStyle(
+              color: value != null
+                  ? AppColors.primary
+                  : AppColors.textSecondary,
+              fontSize: 13,
+              fontWeight: value != null ? FontWeight.w600 : FontWeight.normal,
+            ),
+          ),
+          icon: Icon(
+            Icons.arrow_drop_down,
+            color: value != null ? AppColors.primary : AppColors.textSecondary,
+            size: 20,
+          ),
+          isDense: true,
+          items: items.map((T item) {
+            return DropdownMenuItem<T>(
+              value: item,
+              child: Text(
+                item.toString(),
+                style: const TextStyle(fontSize: 13),
+              ),
+            );
+          }).toList(),
+          onChanged: onChanged,
+        ),
+      ),
+    );
+  }
+
+  void _applyQuickFilters() {
+    context.read<DoctorProvider>().loadDoctors(
+      location: _selectedLocation == 'Toutes' ? null : _selectedLocation,
+      isAvailable: _selectedAvailability == 'Maintenant' ? true : null,
+      maxPrice: _selectedPrice == 'Abordable (< 10k)' ? 10000 : null,
+    );
+  }
+
+  Future<void> _makeEmergencyCall() async {
+    final Uri emergencyLaunchUri = Uri(scheme: 'tel', path: '118');
+    try {
+      if (await canLaunchUrl(emergencyLaunchUri)) {
+        await launchUrl(emergencyLaunchUri);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Impossible de lancer l\'appel')),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Error launching emergency call: $e');
+    }
+  }
+
+  Future<void> _openFilters([Map<String, dynamic>? initialFilters]) async {
+    final filters = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            SearchFiltersScreen(initialFilters: initialFilters ?? {}),
+      ),
+    );
+
+    if (filters != null && mounted) {
+      context.read<DoctorProvider>().loadDoctors(
+        location: filters['location'],
+        maxPrice: (filters['maxPrice'] as double?)?.toInt(),
+        specialty: (filters['specialties'] as List?)?.isNotEmpty == true
+            ? (filters['specialties'] as List).first
+            : null,
+        languages: (filters['languages'] as List?)?.cast<String>(),
+        isAvailable: filters['availableNow'] == true ? true : null,
+        minRating: (filters['minRating'] as double?) != 0
+            ? filters['minRating']
+            : null,
+        gender: filters['gender'],
+      );
+    }
   }
 }
 
@@ -696,10 +1103,7 @@ class _SpecialtyCard extends StatelessWidget {
             Text(
               title,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
-              ),
+              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
@@ -710,35 +1114,11 @@ class _SpecialtyCard extends StatelessWidget {
   }
 }
 
-class _FilterChip extends StatelessWidget {
-  final String label;
-  final bool isSelected;
-
-  const _FilterChip({
-    required this.label,
-    this.isSelected = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return FilterChip(
-      label: Text(label),
-      selected: isSelected,
-      onSelected: (_) {},
-      selectedColor: AppColors.primaryLight,
-      checkmarkColor: AppColors.primary,
-    );
-  }
-}
-
 class _DoctorCard extends StatelessWidget {
   final Doctor doctor;
   final VoidCallback onTap;
 
-  const _DoctorCard({
-    required this.doctor,
-    required this.onTap,
-  });
+  const _DoctorCard({required this.doctor, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -782,6 +1162,8 @@ class _DoctorCard extends StatelessWidget {
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   Text(
                     doctor.specialty,
@@ -789,6 +1171,8 @@ class _DoctorCard extends StatelessWidget {
                       color: AppColors.textSecondary,
                       fontSize: 14,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
                   Row(
@@ -803,13 +1187,21 @@ class _DoctorCard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      Icon(Icons.location_on, size: 14, color: AppColors.textSecondary),
+                      Icon(
+                        Icons.location_on,
+                        size: 14,
+                        color: AppColors.textSecondary,
+                      ),
                       const SizedBox(width: 2),
-                      Text(
-                        doctor.location,
-                        style: const TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 13,
+                      Flexible(
+                        child: Text(
+                          doctor.location,
+                          style: const TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 13,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
@@ -829,7 +1221,10 @@ class _DoctorCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.successLight,
                     borderRadius: BorderRadius.circular(12),
@@ -899,8 +1294,187 @@ class EmergencyButton extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(Icons.emergency, size: 24),
-            Text('SOS', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+            Text(
+              'SOS',
+              style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+            ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Carte de rendez-vous pour la liste
+class _AppointmentCard extends StatelessWidget {
+  final Appointment appointment;
+  final VoidCallback onTap;
+
+  const _AppointmentCard({required this.appointment, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    // Déterminer le statut et la couleur appropriés
+    Color statusColor;
+    String statusText;
+
+    switch (appointment.status) {
+      case AppointmentStatus.confirmed:
+        statusColor = AppColors.success;
+        statusText = 'Confirmé';
+        break;
+      case AppointmentStatus.pending:
+        statusColor = AppColors.warning;
+        statusText = 'En attente';
+        break;
+      case AppointmentStatus.cancelled:
+        statusColor = AppColors.error;
+        statusText = 'Annulé';
+        break;
+      case AppointmentStatus.completed:
+        statusColor = AppColors.info;
+        statusText = 'Terminé';
+        break;
+      default:
+        statusColor = AppColors.textSecondary;
+        statusText = 'Inconnu';
+    }
+
+    // Vérifier si le médecin existe
+    final doctor = appointment.doctor;
+
+    return Card(
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+        child: Container(
+          padding: const EdgeInsets.all(AppConstants.defaultPadding),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // En-tête avec médecin et statut
+              Row(
+                children: [
+                  // Avatar du médecin
+                  CircleAvatar(
+                    radius: 24,
+                    backgroundColor: AppColors.primaryLight,
+                    child: Text(
+                      doctor?.initials ?? '?',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(width: 12),
+
+                  // Informations du médecin
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          doctor?.fullName ?? 'Médecin inconnu',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        Text(
+                          doctor?.specialty ?? 'Spécialité inconnue',
+                          style: const TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Statut
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: statusColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      statusText,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: statusColor,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 12),
+
+              // Date et heure
+              Row(
+                children: [
+                  const Icon(
+                    Icons.calendar_today,
+                    size: 16,
+                    color: AppColors.textSecondary,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '${appointment.appointmentDate.day}/${appointment.appointmentDate.month}/${appointment.appointmentDate.year}',
+                    style: const TextStyle(color: AppColors.textSecondary),
+                  ),
+                  const SizedBox(width: 16),
+                  const Icon(
+                    Icons.access_time,
+                    size: 16,
+                    color: AppColors.textSecondary,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    appointment.timeSlot,
+                    style: const TextStyle(color: AppColors.textSecondary),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 8),
+
+              // Lieu
+              Row(
+                children: [
+                  const Icon(
+                    Icons.location_on,
+                    size: 16,
+                    color: AppColors.textSecondary,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      doctor?.location ?? 'Lieu inconnu',
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 13,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

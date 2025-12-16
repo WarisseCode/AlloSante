@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'doctor.dart';
+import '../../../auth/domain/entities/user.dart';
 
 /// Entité Rendez-vous
 class Appointment extends Equatable {
@@ -17,9 +18,10 @@ class Appointment extends Equatable {
   final DateTime? cancelledAt;
   final String? cancelReason;
   final PaymentInfo? paymentInfo;
-  
+
   // Relations (chargées depuis le cache)
   final Doctor? doctor;
+  final User? user;
 
   const Appointment({
     required this.id,
@@ -37,13 +39,14 @@ class Appointment extends Equatable {
     this.cancelReason,
     this.paymentInfo,
     this.doctor,
+    this.user,
   });
 
   /// Vérifier si le RDV est à venir
   bool get isUpcoming {
     final now = DateTime.now();
-    return appointmentDate.isAfter(now) && 
-           (status == AppointmentStatus.confirmed || 
+    return appointmentDate.isAfter(now) &&
+        (status == AppointmentStatus.confirmed ||
             status == AppointmentStatus.pending);
   }
 
@@ -52,7 +55,7 @@ class Appointment extends Equatable {
 
   /// Vérifier si le RDV peut être annulé
   bool get canBeCancelled {
-    if (status != AppointmentStatus.confirmed && 
+    if (status != AppointmentStatus.confirmed &&
         status != AppointmentStatus.pending) {
       return false;
     }
@@ -64,13 +67,29 @@ class Appointment extends Equatable {
   /// Date formatée
   String get formattedDate {
     final months = [
-      'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
-      'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
+      'Janvier',
+      'Février',
+      'Mars',
+      'Avril',
+      'Mai',
+      'Juin',
+      'Juillet',
+      'Août',
+      'Septembre',
+      'Octobre',
+      'Novembre',
+      'Décembre',
     ];
     final days = [
-      'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'
+      'Lundi',
+      'Mardi',
+      'Mercredi',
+      'Jeudi',
+      'Vendredi',
+      'Samedi',
+      'Dimanche',
     ];
-    
+
     return '${days[appointmentDate.weekday - 1]} ${appointmentDate.day} ${months[appointmentDate.month - 1]} ${appointmentDate.year}';
   }
 
@@ -94,6 +113,7 @@ class Appointment extends Equatable {
     String? cancelReason,
     PaymentInfo? paymentInfo,
     Doctor? doctor,
+    User? user,
   }) {
     return Appointment(
       id: id ?? this.id,
@@ -111,6 +131,7 @@ class Appointment extends Equatable {
       cancelReason: cancelReason ?? this.cancelReason,
       paymentInfo: paymentInfo ?? this.paymentInfo,
       doctor: doctor ?? this.doctor,
+      user: user ?? this.user,
     );
   }
 
@@ -153,53 +174,53 @@ class Appointment extends Equatable {
       notes: map['notes'] as String?,
       price: map['price'] as int,
       createdAt: DateTime.parse(map['created_at'] as String),
-      confirmedAt: map['confirmed_at'] != null 
-          ? DateTime.parse(map['confirmed_at'] as String) 
+      confirmedAt: map['confirmed_at'] != null
+          ? DateTime.parse(map['confirmed_at'] as String)
           : null,
-      cancelledAt: map['cancelled_at'] != null 
-          ? DateTime.parse(map['cancelled_at'] as String) 
+      cancelledAt: map['cancelled_at'] != null
+          ? DateTime.parse(map['cancelled_at'] as String)
           : null,
       cancelReason: map['cancel_reason'] as String?,
-      paymentInfo: map['payment_info'] != null 
-          ? PaymentInfo.fromMap(map['payment_info'] as Map<String, dynamic>) 
+      paymentInfo: map['payment_info'] != null
+          ? PaymentInfo.fromMap(map['payment_info'] as Map<String, dynamic>)
           : null,
     );
   }
 
   @override
   List<Object?> get props => [
-        id,
-        doctorId,
-        userId,
-        appointmentDate,
-        timeSlot,
-        status,
-        type,
-        notes,
-        price,
-        createdAt,
-        confirmedAt,
-        cancelledAt,
-        cancelReason,
-        paymentInfo,
-      ];
+    id,
+    doctorId,
+    userId,
+    appointmentDate,
+    timeSlot,
+    status,
+    type,
+    notes,
+    price,
+    createdAt,
+    confirmedAt,
+    cancelledAt,
+    cancelReason,
+    paymentInfo,
+  ];
 }
 
 /// Statut du rendez-vous
 enum AppointmentStatus {
-  pending,      // En attente de paiement
-  confirmed,    // Confirmé
-  completed,    // Terminé
-  cancelled,    // Annulé
-  noShow,       // Patient absent
+  pending, // En attente de paiement
+  confirmed, // Confirmé
+  completed, // Terminé
+  cancelled, // Annulé
+  noShow, // Patient absent
 }
 
 /// Type de rendez-vous
 enum AppointmentType {
-  consultation,       // Consultation standard
-  followUp,          // Suivi
-  emergency,         // Urgence
-  teleconsultation,  // Téléconsultation
+  consultation, // Consultation standard
+  followUp, // Suivi
+  emergency, // Urgence
+  teleconsultation, // Téléconsultation
 }
 
 /// Créneau horaire disponible
@@ -268,37 +289,37 @@ class PaymentInfo extends Equatable {
       amount: map['amount'] as int,
       phoneNumber: map['phone_number'] as String?,
       initiatedAt: DateTime.parse(map['initiated_at'] as String),
-      completedAt: map['completed_at'] != null 
-          ? DateTime.parse(map['completed_at'] as String) 
+      completedAt: map['completed_at'] != null
+          ? DateTime.parse(map['completed_at'] as String)
           : null,
     );
   }
 
   @override
   List<Object?> get props => [
-        transactionId,
-        method,
-        status,
-        amount,
-        phoneNumber,
-        initiatedAt,
-        completedAt,
-      ];
+    transactionId,
+    method,
+    status,
+    amount,
+    phoneNumber,
+    initiatedAt,
+    completedAt,
+  ];
 }
 
 /// Méthode de paiement
 enum PaymentMethod {
-  mtnMomo,      // MTN Mobile Money
-  celtiisCash,  // Celtiis Cash
-  cash,         // Paiement sur place
+  mtnMomo, // MTN Mobile Money
+  celtiisCash, // Celtiis Cash
+  cash, // Paiement sur place
 }
 
 /// Statut du paiement
 enum PaymentStatus {
-  pending,    // En attente de validation utilisateur
+  pending, // En attente de validation utilisateur
   processing, // En cours de traitement
-  success,    // Paiement réussi
-  failed,     // Paiement échoué
-  cancelled,  // Paiement annulé
-  expired,    // Délai expiré
+  success, // Paiement réussi
+  failed, // Paiement échoué
+  cancelled, // Paiement annulé
+  expired, // Délai expiré
 }

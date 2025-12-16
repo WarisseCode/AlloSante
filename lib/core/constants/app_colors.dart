@@ -7,7 +7,7 @@ class AppColors {
 
   // === COULEURS PRIMAIRES ===
   /// Vert Teal Médical - Couleur de confiance principale
-  static const Color primary = Color(0xFF00897B);
+  static const Color primary = Color(0xFF4ed12a);
   static const Color primaryLight = Color(0xFF4DB6AC);
   static const Color primaryDark = Color(0xFF00695C);
   

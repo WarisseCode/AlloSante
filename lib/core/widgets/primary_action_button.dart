@@ -23,41 +23,42 @@ class PrimaryActionButton extends StatelessWidget {
 
   /// Texte du bouton
   final String text;
-  
+
   /// Callback lors du clic
   final VoidCallback? onPressed;
-  
+
   /// État de chargement
   final bool isLoading;
-  
+
   /// État d'activation
   final bool isEnabled;
-  
+
   /// Icône optionnelle (affichée à gauche du texte)
   final IconData? icon;
-  
+
   /// Couleur de fond personnalisée
   final Color? backgroundColor;
-  
+
   /// Couleur du texte personnalisée
   final Color? foregroundColor;
-  
+
   /// Largeur personnalisée
   final double? width;
-  
+
   /// Hauteur personnalisée
   final double? height;
-  
+
   /// Border radius personnalisé
   final double? borderRadius;
-  
+
   /// Élévation personnalisée
   final double? elevation;
 
   @override
   Widget build(BuildContext context) {
     final effectiveBackgroundColor = backgroundColor ?? AppColors.secondary;
-    final effectiveForegroundColor = foregroundColor ?? AppColors.textOnSecondary;
+    final effectiveForegroundColor =
+        foregroundColor ?? AppColors.textOnSecondary;
     final effectiveHeight = height ?? AppConstants.buttonHeight;
     final effectiveBorderRadius = borderRadius ?? AppConstants.borderRadius;
 
@@ -70,8 +71,12 @@ class PrimaryActionButton extends StatelessWidget {
           elevation: elevation ?? 3,
           backgroundColor: effectiveBackgroundColor,
           foregroundColor: effectiveForegroundColor,
-          disabledBackgroundColor: effectiveBackgroundColor.withValues(alpha: 0.5),
-          disabledForegroundColor: effectiveForegroundColor.withValues(alpha: 0.7),
+          disabledBackgroundColor: effectiveBackgroundColor.withValues(
+            alpha: 0.5,
+          ),
+          disabledForegroundColor: effectiveForegroundColor.withValues(
+            alpha: 0.7,
+          ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(effectiveBorderRadius),
           ),
@@ -98,15 +103,18 @@ class PrimaryActionButton extends StatelessWidget {
                     Icon(icon, size: 22),
                     const SizedBox(width: 10),
                   ],
-                  Text(
-                    text.toUpperCase(),
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.8,
-                      color: isEnabled
-                          ? effectiveForegroundColor
-                          : effectiveForegroundColor.withValues(alpha: 0.7),
+                  Flexible(
+                    child: Text(
+                      text.toUpperCase(),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.8,
+                        color: isEnabled
+                            ? effectiveForegroundColor
+                            : effectiveForegroundColor.withValues(alpha: 0.7),
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
@@ -199,11 +207,7 @@ class SecondaryActionButton extends StatelessWidget {
 
 /// Bouton d'urgence SOS
 class EmergencyButton extends StatelessWidget {
-  const EmergencyButton({
-    super.key,
-    required this.onPressed,
-    this.size = 64,
-  });
+  const EmergencyButton({super.key, required this.onPressed, this.size = 64});
 
   final VoidCallback onPressed;
   final double size;

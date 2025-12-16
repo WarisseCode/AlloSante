@@ -60,8 +60,10 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
         _showError(authProvider.errorMessage ?? 'Code invalide');
         _shakeController.forward(from: 0);
         _pinController.clear();
+      } else {
+        // Retourner à la racine pour laisser le AuthWrapper gérer l'affichage
+        Navigator.of(context).popUntil((route) => route.isFirst);
       }
-      // Navigation gérée par le router si succès
     }
   }
 
@@ -94,23 +96,25 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: 20),
-              
+
               // Icône
               _buildIcon(),
-              
+
               const SizedBox(height: 32),
-              
+
               // Titre et description
               _buildHeader(phone),
-              
+
               const SizedBox(height: 40),
-              
+
               // Champ OTP avec animation shake
               AnimatedBuilder(
                 animation: _shakeController,
                 builder: (context, child) {
-                  final offset = _shakeController.value * 10 * 
-                      (1 - _shakeController.value) * 
+                  final offset =
+                      _shakeController.value *
+                      10 *
+                      (1 - _shakeController.value) *
                       (_shakeController.value < 0.5 ? 1 : -1);
                   return Transform.translate(
                     offset: Offset(offset, 0),
@@ -119,7 +123,7 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
                 },
                 child: _buildOtpInput(),
               ),
-              
+
               // Message d'erreur
               if (_errorText != null) ...[
                 const SizedBox(height: 16),
@@ -127,11 +131,17 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: AppColors.errorLight,
-                    borderRadius: BorderRadius.circular(AppConstants.borderRadiusSmall),
+                    borderRadius: BorderRadius.circular(
+                      AppConstants.borderRadiusSmall,
+                    ),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.error_outline, color: AppColors.error, size: 20),
+                      const Icon(
+                        Icons.error_outline,
+                        color: AppColors.error,
+                        size: 20,
+                      ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
@@ -146,9 +156,9 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
                   ),
                 ),
               ],
-              
+
               const SizedBox(height: 32),
-              
+
               // Bouton de vérification
               PrimaryActionButton(
                 text: 'Vérifier le code',
@@ -156,14 +166,14 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
                 isLoading: _isLoading,
                 icon: Icons.check_circle,
               ),
-              
+
               const SizedBox(height: 24),
-              
+
               // Renvoyer le code
               _buildResendSection(countdown, authProvider),
-              
+
               const SizedBox(height: 32),
-              
+
               // Info de test
               _buildTestInfo(),
             ],
@@ -181,11 +191,7 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
         color: AppColors.primaryLight.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(20),
       ),
-      child: const Icon(
-        Icons.sms_outlined,
-        size: 40,
-        color: AppColors.primary,
-      ),
+      child: const Icon(Icons.sms_outlined, size: 40, color: AppColors.primary),
     );
   }
 
@@ -199,19 +205,19 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
             color: AppColors.textPrimary,
           ),
         ),
-        
+
         const SizedBox(height: 12),
-        
+
         Text(
           'Entrez le code à 6 chiffres envoyé au',
-          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-            color: AppColors.textSecondary,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.bodyLarge?.copyWith(color: AppColors.textSecondary),
           textAlign: TextAlign.center,
         ),
-        
+
         const SizedBox(height: 8),
-        
+
         Text(
           '+229 $phone',
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -304,13 +310,13 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
       children: [
         Text(
           'Vous n\'avez pas reçu le code ?',
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: AppColors.textSecondary,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
         ),
-        
+
         const SizedBox(height: 8),
-        
+
         if (countdown > 0)
           Row(
             mainAxisAlignment: MainAxisAlignment.center,

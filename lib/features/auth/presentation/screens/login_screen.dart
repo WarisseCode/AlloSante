@@ -5,6 +5,8 @@ import '../../../../core/constants/app_constants.dart';
 import '../../../../core/widgets/primary_action_button.dart';
 import '../../../../core/widgets/secure_input_field.dart';
 import '../providers/auth_provider.dart';
+import 'register_screen.dart';
+import 'forgot_password_screen.dart';
 
 /// Écran de connexion AlloSanté
 class LoginScreen extends StatefulWidget {
@@ -102,7 +104,12 @@ class _LoginScreenState extends State<LoginScreen> {
                 // Mot de passe oublié
                 TextButton(
                   onPressed: () {
-                    // TODO: Navigation vers récupération mot de passe
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ForgotPasswordScreen(),
+                      ),
+                    );
                   },
                   child: const Text(
                     'Mot de passe oublié ?',
@@ -240,7 +247,12 @@ class _LoginScreenState extends State<LoginScreen> {
           SecondaryActionButton(
             text: 'Créer un compte',
             onPressed: () {
-              // TODO: Navigation vers l'inscription
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const RegisterScreen(),
+                ),
+              );
             },
             icon: Icons.person_add,
           ),
