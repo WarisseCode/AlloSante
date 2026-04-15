@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip --version)",
+      "Bash(flutter --version)",
+      "Bash(git -C d:/AlloSante log --oneline -1)"
+    ]
+  }
+}
