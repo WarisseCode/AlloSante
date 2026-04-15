@@ -11,7 +11,8 @@
       "Bash(venv/Scripts/python -c ':*)",
       "Bash(flutter pub:*)",
       "Bash(venv/Scripts/python manage.py check)",
-      "Bash(DJANGO_SETTINGS_MODULE=config.settings SECRET_KEY=test-key DB_NAME=allodoto DB_USER=u DB_PASSWORD=p venv/Scripts/python manage.py check)"
+      "Bash(DJANGO_SETTINGS_MODULE=config.settings SECRET_KEY=test-key DB_NAME=allodoto DB_USER=u DB_PASSWORD=p venv/Scripts/python manage.py check)",
+      "Bash(DJANGO_SETTINGS_MODULE=config.settings SECRET_KEY=test-key DB_NAME=x DB_USER=x DB_PASSWORD=x venv/Scripts/python manage.py check)"
     ]
   }
 }
