@@ -3,7 +3,14 @@
     "allow": [
       "Bash(pip --version)",
       "Bash(flutter --version)",
-      "Bash(git -C d:/AlloSante log --oneline -1)"
+      "Bash(git -C d:/AlloSante log --oneline -1)",
+      "Bash(python -m venv backend/venv)",
+      "Bash(backend/venv/Scripts/pip install:*)",
+      "Bash(d:/AlloSante/backend/venv/Scripts/python -m django --version)",
+      "Bash(python -c ':*)",
+      "Bash(venv/Scripts/python -c ':*)",
+      "Bash(flutter pub:*)",
+      "Bash(venv/Scripts/python manage.py check)"
     ]
   }
 }
