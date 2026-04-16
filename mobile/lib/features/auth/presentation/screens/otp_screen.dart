@@ -85,7 +85,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
         elevation: 0,
       ),
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -181,6 +181,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                         ),
                       ),
               ),
+              const SizedBox(height: 24),
             ],
           ),
         ),
