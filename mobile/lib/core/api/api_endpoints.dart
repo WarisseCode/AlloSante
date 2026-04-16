@@ -3,10 +3,8 @@
 class ApiConfig {
   ApiConfig._();
 
-  // ⚠️  Sur téléphone physique : utiliser l'IP WiFi du PC, pas localhost.
-  //     PC actuel : 192.168.1.199
-  //     Lancer le backend : cd backend && venv/Scripts/python manage.py runserver 0.0.0.0:8000
-  static const String baseUrl = 'http://192.168.1.199:8000/api/v1';
+  // Backend hébergé sur Railway
+  static const String baseUrl = 'https://lively-success-production-aa0c.up.railway.app/api/v1';
 
   // Auth
   static const String register = '/auth/register/';

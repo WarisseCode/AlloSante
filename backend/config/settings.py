@@ -12,6 +12,11 @@ SECRET_KEY = config('SECRET_KEY', default='django-insecure-change-this-in-produc
 DEBUG = config('DEBUG', default=True, cast=bool)
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
 
+# Railway injecte automatiquement RAILWAY_PUBLIC_DOMAIN
+_railway_domain = config('RAILWAY_PUBLIC_DOMAIN', default='')
+if _railway_domain and _railway_domain not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(_railway_domain)
+
 # Applications
 DJANGO_APPS = [
     'django.contrib.admin',
