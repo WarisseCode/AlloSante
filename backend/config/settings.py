@@ -163,6 +163,16 @@ CORS_ALLOWED_ORIGINS = [
 ]
 CORS_ALLOW_ALL_ORIGINS = DEBUG
 
+# CSRF — Domaines de confiance (Railway + dev local)
+CSRF_TRUSTED_ORIGINS = [
+    'https://*.railway.app',
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
+]
+_railway_domain = config('RAILWAY_PUBLIC_DOMAIN', default='')
+if _railway_domain:
+    CSRF_TRUSTED_ORIGINS.append(f'https://{_railway_domain}')
+
 # Documentation API Swagger
 SPECTACULAR_SETTINGS = {
     'TITLE': 'AllôDoto API',
