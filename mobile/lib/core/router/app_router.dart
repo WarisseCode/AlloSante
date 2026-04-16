@@ -11,16 +11,17 @@ import '../../features/home/presentation/screens/home_screen.dart';
 import '../../features/practitioners/presentation/screens/practitioner_detail_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authProvider);
-
-  return GoRouter(
+  final router = GoRouter(
     initialLocation: '/onboarding',
     redirect: (context, state) {
-      final isAuth = authState.isAuthenticated;
-      final isAuthRoute = state.matchedLocation.startsWith('/onboarding') ||
-          state.matchedLocation.startsWith('/login') ||
-          state.matchedLocation.startsWith('/register') ||
-          state.matchedLocation.startsWith('/otp');
+      // ref.read et non ref.watch : on lit l'état au moment du redirect
+      // sans que le router soit recréé à chaque changement d'état
+      final isAuth = ref.read(authProvider).isAuthenticated;
+      final loc = state.matchedLocation;
+      final isAuthRoute = loc.startsWith('/onboarding') ||
+          loc.startsWith('/login') ||
+          loc.startsWith('/register') ||
+          loc.startsWith('/otp');
 
       if (isAuth && isAuthRoute) return '/home';
       if (!isAuth && !isAuthRoute) return '/onboarding';
@@ -29,10 +30,7 @@ final routerProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(path: '/onboarding', builder: (_, __) => const OnboardingScreen()),
       GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
-      GoRoute(
-        path: '/register',
-        builder: (_, __) => const RegisterScreen(),
-      ),
+      GoRoute(path: '/register', builder: (_, __) => const RegisterScreen()),
       GoRoute(
         path: '/otp',
         builder: (_, state) {
@@ -53,4 +51,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       body: Center(child: Text('Page introuvable : ${state.error}')),
     ),
   );
+
+  // Réévalue les redirects quand l'auth change, sans recréer le router
+  ref.listen(authProvider, (_, __) => router.refresh());
+
+  return router;
 });

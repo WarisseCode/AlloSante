@@ -48,7 +48,7 @@ class AuthRepository {
     required String password,
   }) async {
     final resp = await _client.dio.post(ApiConfig.login, data: {
-      'username': phoneNumber,
+      'phone_number': phoneNumber,
       'password': password,
     });
     await _client.saveTokens(
