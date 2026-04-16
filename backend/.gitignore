@@ -1,0 +1,22 @@
+# Environnement Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Variables d'environnement (NE JAMAIS COMMITTER)
+.env
+
+# Base de données locale
+db.sqlite3
+
+# Fichiers Django générés
+staticfiles/
+media/
+*.log
+
+# IDE
+.vscode/
+.idea/
